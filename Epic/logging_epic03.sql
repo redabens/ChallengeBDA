@@ -20,18 +20,18 @@ DECLARE
     v_error_msg TEXT;
 BEGIN
     BEGIN
-        -- A. Alimentation de dim_clients
+        -- A. Alimentation de dim_clients (Gestion des noms manquants)
         INSERT INTO dim_clients (client_id, client_name)
-        SELECT DISTINCT client_id, client_name
+        SELECT DISTINCT client_id, COALESCE(NULLIF(client_name, 'None'), 'Client Inconnu')
         FROM staging_orders
-        WHERE client_id IS NOT NULL
+        WHERE client_id IS NOT NULL AND client_id <> 'None'
         ON CONFLICT (client_id) DO NOTHING;
 
-        -- B. Alimentation de dim_products
+        -- B. Alimentation de dim_products (Gestion des noms manquants)
         INSERT INTO dim_products (product_id, product_name)
-        SELECT DISTINCT product_id, product_name
+        SELECT DISTINCT product_id, COALESCE(NULLIF(product_name, 'None'), 'Produit Inconnu')
         FROM staging_orders
-        WHERE product_id IS NOT NULL
+        WHERE product_id IS NOT NULL AND product_id <> 'None'
         ON CONFLICT (product_id) DO NOTHING;
 
         -- C. Alimentation de fact_orders
