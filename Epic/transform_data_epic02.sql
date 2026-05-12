@@ -39,17 +39,32 @@ $$ LANGUAGE plpgsql;
 -- Tente de parser le JSON, retourne un objet vide {} si corrompu
 CREATE OR REPLACE FUNCTION fn_fix_json(json_str TEXT) 
 RETURNS JSONB AS $$
+DECLARE
+    clean_json TEXT;
 BEGIN
     IF json_str IS NULL OR json_str = '' OR json_str = 'None' THEN 
         RETURN '{}'::JSONB; 
     END IF;
+
+    -- 1. Nettoyage des guillemets parasites et des échappements
+    clean_json := json_str;
     
+    -- Enlever les guillemets de début et fin si présents
+    IF clean_json LIKE '"%' AND clean_json LIKE '%"' THEN
+        clean_json := substr(clean_json, 2, length(clean_json) - 2);
+    END IF;
+    
+    -- Remplacer les doubles guillemets par des simples
+    clean_json := replace(clean_json, '""', '"');
+    
+    -- Remplacer les échappements
+    clean_json := replace(clean_json, '\"', '"');
+
+    -- 2. Tentative de conversion
     BEGIN
-        RETURN json_str::JSONB;
+        RETURN clean_json::JSONB;
     EXCEPTION WHEN OTHERS THEN
-        -- En cas de JSON tronqué/invalide, on retourne un objet avec une trace d'erreur
-        -- On pourrait aussi tenter une réparation par regex ici si besoin.
-        RETURN jsonb_build_object('raw_error', json_str, 'corrupted', true);
+        RETURN jsonb_build_object('raw_error', json_str, 'clean_attempt', clean_json, 'corrupted', true);
     END;
 END;
 $$ LANGUAGE plpgsql;
