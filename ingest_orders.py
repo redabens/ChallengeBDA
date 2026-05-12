@@ -11,17 +11,20 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "soumiatech_db")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASS = os.getenv("DB_PASS", "votre_mot_de_passe")
-FILE_PATH = "soumiaTech_orders_export.csv.xlsx"
+FILE_PATH = "soumiaTech_orders_export.csv"
 
 def ingest_data():
     try:
         print(f"--- Dmarrage de l'ingestion de {FILE_PATH} ---")
         
-        # 1. Lecture du fichier Excel
-        df = pd.read_excel(FILE_PATH)
+        # 1. Lecture du fichier CSV (sparateur ;)
+        df = pd.read_csv(FILE_PATH, sep=';', encoding='utf-8')
         
         # S'assurer que toutes les colonnes sont traites comme du texte pour le staging
         df = df.astype(str)
+        # Nettoyage additionnel pour le prix (suppression du $)
+        df['unit_price'] = df['unit_price'].str.replace('$', '', regex=False)
+        
         # Remplacer 'nan' par None (NULL en SQL)
         df = df.replace('nan', None)
         df = df.replace('None', None)

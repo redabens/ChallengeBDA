@@ -16,11 +16,20 @@ BEGIN
     BEGIN
         RETURN date_str::DATE;
     EXCEPTION WHEN OTHERS THEN
-        -- Tentative format Français (DD/MM/YYYY)
+        -- Tentative format DD/MM/YYYY ou DD-MM-YYYY
         BEGIN
             RETURN to_date(date_str, 'DD/MM/YYYY');
         EXCEPTION WHEN OTHERS THEN
-            RETURN NULL; -- Retourne NULL si aucun format ne match
+            BEGIN
+                RETURN to_date(date_str, 'DD-MM-YYYY');
+            EXCEPTION WHEN OTHERS THEN
+                -- Tentative format DD-Mon-YYYY (ex: 18-Nov-2022)
+                BEGIN
+                    RETURN to_date(date_str, 'DD-Mon-YYYY');
+                EXCEPTION WHEN OTHERS THEN
+                    RETURN NULL;
+                END;
+            END;
         END;
     END;
 END;
