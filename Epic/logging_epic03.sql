@@ -34,12 +34,12 @@ BEGIN
         WHERE product_id IS NOT NULL AND product_id <> 'None'
         ON CONFLICT (product_id) DO NOTHING;
 
-        -- C. Alimentation de fact_orders
+        -- C. Alimentation de fact_orders (Déduplication et UPSERT)
         INSERT INTO fact_orders (
             order_id, client_key, product_key, quantity, unit_price, 
             order_date, delivery_date, status, region, sales_rep, operational_data
         )
-        SELECT 
+        SELECT DISTINCT ON (s.order_id)
             s.order_id,
             c.client_key,
             p.product_key,
@@ -54,6 +54,7 @@ BEGIN
         FROM staging_orders s
         JOIN dim_clients c ON s.client_id = c.client_id
         JOIN dim_products p ON s.product_id = p.product_id
+        ORDER BY s.order_id
         ON CONFLICT (order_id) DO UPDATE SET
             status = EXCLUDED.status,
             delivery_date = EXCLUDED.delivery_date,
